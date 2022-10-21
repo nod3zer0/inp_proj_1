@@ -68,6 +68,8 @@ ARCHITECTURE behavioral OF cpu IS
 
     TYPE fsm_state_t IS (
         fsm_init,
+        fsm_load_ins,
+        fsm_dec,
         fsm_inc_ptr,
         fsm_dec_ptr,
         fsm_inc_val,
@@ -81,7 +83,7 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_null
     );
 
-    signal fsm_state : fsm_state_t := fsm_init;
+    SIGNAL fsm_state : fsm_state_t := fsm_init;
 
 BEGIN
     -- Program counter PC
@@ -124,7 +126,7 @@ BEGIN
     ptr_cntr : PROCESS (RESET, CLK)
     BEGIN
         IF (RESET = '1') THEN
-            ptr_reg <= (OTHERS => '0');
+            ptr_reg <= x"1000";
         ELSIF (CLK'event) AND (CLK = '1') THEN
             IF (ptr_inc = '1') THEN
                 ptr_reg <= ptr_reg + 1;
@@ -133,7 +135,7 @@ BEGIN
                 ptr_reg <= ptr_reg - 1;
             END IF;
             IF (ptr_clear = '1') THEN
-                ptr_reg <= (OTHERS => '0');
+                ptr_reg <= x"1000";
             END IF;
         END IF;
     END PROCESS;
@@ -175,8 +177,48 @@ BEGIN
         ELSIF (CLK'event) AND (CLK = '1') THEN
 
             CASE fsm_state IS
-                WHEN fsm_init => DATA_WDATA <= IN_DATA;
-                WHEN OTHERS => DATA_WDATA <= (OTHERS => '0');
+                WHEN fsm_init =>
+                    pc_clear <= '1';
+                    cnt_clear <= '1';
+                    ptr_clear <= '1';
+
+                    fsm_state <= fsm_load_ins;
+                WHEN fsm_load_ins =>
+                    mx1_sel <= '0';
+                    DATA_RDWR <= '0';
+                    DATA_EN <= '1';
+
+                    fsm_state <= fsm_dec;
+                        WHEN fsm_dec =>
+                        CASE DATA_RDATA IS
+                            WHEN x"3E" =>
+                            fsm_state <= fsm_inc_ptr;
+                            WHEN x"3C" =>
+                            fsm_state <=  fsm_dec_ptr;
+                            WHEN x"2B" =>
+                            fsm_state <= fsm_inc_val;
+                            WHEN x"2D" =>
+                            fsm_state <= fsm_dec_val;
+                            WHEN x"5B" =>
+                            fsm_state <= fsm_while_start;
+                            WHEN x"5D" =>
+                            fsm_state <=  fsm_while_end;
+                            WHEN x"28" =>
+                            fsm_state <=  fsm_neg_while_start;
+                            WHEN x"29" =>
+                            fsm_state <=    fsm_neg_while_end;
+                            WHEN x"2E" =>
+                            fsm_state <=  fsm_putchar;
+                            WHEN x"2C" =>
+                            fsm_state <=  fsm_getchar;
+                            WHEN x"00" =>
+                            fsm_state <= fsm_null;
+                            WHEN OTHERS =>
+                            fsm_state <= fsm_init;
+
+                        END CASE;
+
+                        WHEN OTHERS => DATA_WDATA <= (OTHERS => '0');
             END CASE;
 
         END IF;
