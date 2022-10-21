@@ -1,0 +1,2 @@
+scp cpu.vhd inp:inp22-projekt1/zadani/src
+ssh inp "cd inp22-projekt1 ;. env/bin/activate ; cd zadani/test; make"
