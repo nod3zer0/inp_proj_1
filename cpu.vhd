@@ -68,13 +68,19 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_for_mem,
         fsm_dec,
         fsm_inc_ptr,
+        fsm_inc_ptr2,
         fsm_dec_ptr,
+        fsm_dec_ptr2,
         fsm_inc_val,
         fsm_inc_val_1,
         fsm_inc_val_2,
         fsm_inc_val_3,
         fsm_inc_val_4,
         fsm_dec_val,
+        fsm_dec_val_1,
+        fsm_dec_val_2,
+        fsm_dec_val_3,
+        fsm_dec_val_4,
         fsm_putchar,
         fsm_getchar,
         fsm_while_start,
@@ -178,12 +184,9 @@ BEGIN
         pc_dec <= '0';
         pc_clear <= '0';
         -- Program counter CNT
-        cnt_inc <= '0';
         cnt_dec <= '0';
         cnt_clear <= '0';
         -- Program counter PTR
-        ptr_inc <= '0';
-        ptr_dec <= '0';
         ptr_clear <= '0';
         IN_REQ <= '0';
         OUT_DATA <= "00000000";
@@ -245,11 +248,19 @@ BEGIN
                 WHEN fsm_inc_ptr =>
                     ptr_inc <= '1';
                     pc_inc <= '1';
+                    fsm_state <= fsm_inc_ptr2;
+                    WHEN fsm_inc_ptr2 =>
+                    ptr_inc <= '0';
+                    pc_inc <= '0';
                     fsm_state <= fsm_load_ins;
 
                 WHEN fsm_dec_ptr =>
                     ptr_dec <= '1';
                     pc_inc <= '1';
+                    fsm_state <= fsm_dec_ptr2;
+                    WHEN fsm_dec_ptr2 =>
+                    ptr_dec <= '0';
+                    pc_inc <= '0';
                     fsm_state <= fsm_load_ins;
                 WHEN fsm_inc_val => -- sets up reading from memory
                     pc_inc <= '1';
@@ -275,6 +286,36 @@ BEGIN
                     mx1_sel <= '1';
                     fsm_state <= fsm_inc_val_4;
                 WHEN fsm_inc_val_4 => ---set everything back
+                    DATA_RDWR <= '0';
+                    DATA_EN <= '1';
+                    mx1_sel <= '0';
+                    mx2_sel <= "00";
+                    fsm_state <= fsm_load_ins;
+
+                WHEN fsm_dec_val => -- sets up reading from memory
+                    pc_inc <= '1';
+                    DATA_RDWR <= '0';
+                    DATA_EN <= '1';
+                    mx1_sel <= '1';
+                    mx2_sel <= "01";
+                    fsm_state <= fsm_dec_val_1;
+                WHEN fsm_dec_val_1 => -- waits for memory
+                    pc_inc <= '0';
+                    DATA_RDWR <= '0';
+                    DATA_EN <= '1';
+                    mx1_sel <= '1';
+                    fsm_state <= fsm_dec_val_2;
+                WHEN fsm_dec_val_2 => -- waits for memory
+                    DATA_RDWR <= '1';
+                    DATA_EN <= '1';
+                    mx1_sel <= '1';
+                    fsm_state <= fsm_dec_val_3;
+                WHEN fsm_dec_val_3 => -- writes increased value to memory
+                    DATA_RDWR <= '1';
+                    DATA_EN <= '1';
+                    mx1_sel <= '1';
+                    fsm_state <= fsm_dec_val_4;
+                WHEN fsm_dec_val_4 => ---set everything back
                     DATA_RDWR <= '0';
                     DATA_EN <= '1';
                     mx1_sel <= '0';
