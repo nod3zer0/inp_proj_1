@@ -82,6 +82,10 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_dec_val_3,
         fsm_dec_val_4,
         fsm_putchar,
+        fsm_putchar_1,
+        fsm_putchar_2,
+        fsm_putchar_3,
+        fsm_putchar_clear,
         fsm_getchar,
         fsm_while_start,
         fsm_while_end,
@@ -110,6 +114,7 @@ BEGIN
             END IF;
         END IF;
     END PROCESS;
+
 
     -- CNT
     cnt_cntr : PROCESS (RESET, CLK)
@@ -179,18 +184,7 @@ BEGIN
     fsm : PROCESS (RESET, CLK)
     BEGIN
 
-        --- set everything to default so we dont have to specify everything in every state
 
-        pc_dec <= '0';
-        pc_clear <= '0';
-        -- Program counter CNT
-        cnt_dec <= '0';
-        cnt_clear <= '0';
-        -- Program counter PTR
-        ptr_clear <= '0';
-        IN_REQ <= '0';
-        OUT_DATA <= "00000000";
-        OUT_WE <= '0';
         IF (RESET = '1') THEN
             fsm_state <= fsm_init;
             DATA_EN <= '0';
@@ -198,6 +192,20 @@ BEGIN
             mx1_sel <= '0';
             mx2_sel <= "00";
         ELSIF (CLK'event) AND (CLK = '1') THEN
+
+
+         --- set everything to default so we dont have to specify everything in every state
+
+         pc_dec <= '0';
+         pc_clear <= '0';
+         -- Program counter CNT
+         cnt_dec <= '0';
+         cnt_clear <= '0';
+         -- Program counter PTR
+         ptr_clear <= '0';
+         IN_REQ <= '0';
+         OUT_DATA <= "00000000";
+         OUT_WE <= '0';
 
             CASE fsm_state IS
                 WHEN fsm_init =>
@@ -249,7 +257,7 @@ BEGIN
                     ptr_inc <= '1';
                     pc_inc <= '1';
                     fsm_state <= fsm_inc_ptr2;
-                    WHEN fsm_inc_ptr2 =>
+                WHEN fsm_inc_ptr2 =>
                     ptr_inc <= '0';
                     pc_inc <= '0';
                     fsm_state <= fsm_load_ins;
@@ -258,7 +266,7 @@ BEGIN
                     ptr_dec <= '1';
                     pc_inc <= '1';
                     fsm_state <= fsm_dec_ptr2;
-                    WHEN fsm_dec_ptr2 =>
+                WHEN fsm_dec_ptr2 =>
                     ptr_dec <= '0';
                     pc_inc <= '0';
                     fsm_state <= fsm_load_ins;
@@ -321,6 +329,30 @@ BEGIN
                     mx1_sel <= '0';
                     mx2_sel <= "00";
                     fsm_state <= fsm_load_ins;
+                WHEN fsm_putchar =>
+                    pc_inc <= '1';
+                    DATA_RDWR <= '0';
+                    DATA_EN <= '1';
+                    mx1_sel <= '1';
+
+                    fsm_state <= fsm_putchar_1;
+                WHEN fsm_putchar_1 =>
+                    pc_inc <= '0';
+                    fsm_state <= fsm_putchar_2;
+                WHEN fsm_putchar_2 =>
+                    fsm_state <= fsm_putchar_3;
+                WHEN fsm_putchar_3 =>
+
+                    IF (OUT_BUSY = '0') THEN
+                        OUT_WE <= '1';
+                        OUT_DATA <= DATA_RDATA;
+                        mx1_sel <= '0';
+                        fsm_state <= fsm_putchar_clear;
+                    END IF;
+                WHEN fsm_putchar_clear =>
+                    OUT_WE <= '1';
+                    fsm_state <= fsm_load_ins;
+
                 WHEN OTHERS => fsm_state <= fsm_init;
             END CASE;
 
