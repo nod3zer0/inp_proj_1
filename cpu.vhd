@@ -85,7 +85,6 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_putchar_1,
         fsm_putchar_2,
         fsm_putchar_3,
-        fsm_putchar_clear,
         fsm_getchar,
         fsm_while_start,
         fsm_while_end,
@@ -114,8 +113,6 @@ BEGIN
             END IF;
         END IF;
     END PROCESS;
-
-
     -- CNT
     cnt_cntr : PROCESS (RESET, CLK)
     BEGIN
@@ -183,8 +180,6 @@ BEGIN
     END PROCESS;
     fsm : PROCESS (RESET, CLK)
     BEGIN
-
-
         IF (RESET = '1') THEN
             fsm_state <= fsm_init;
             DATA_EN <= '0';
@@ -192,20 +187,18 @@ BEGIN
             mx1_sel <= '0';
             mx2_sel <= "00";
         ELSIF (CLK'event) AND (CLK = '1') THEN
+            --- set everything to default so we dont have to specify everything in every state
 
-
-         --- set everything to default so we dont have to specify everything in every state
-
-         pc_dec <= '0';
-         pc_clear <= '0';
-         -- Program counter CNT
-         cnt_dec <= '0';
-         cnt_clear <= '0';
-         -- Program counter PTR
-         ptr_clear <= '0';
-         IN_REQ <= '0';
-         OUT_DATA <= "00000000";
-         OUT_WE <= '0';
+            pc_dec <= '0';
+            pc_clear <= '0';
+            -- Program counter CNT
+            cnt_dec <= '0';
+            cnt_clear <= '0';
+            -- Program counter PTR
+            ptr_clear <= '0';
+            IN_REQ <= '0';
+            OUT_DATA <= "00000000";
+            OUT_WE <= '0';
 
             CASE fsm_state IS
                 WHEN fsm_init =>
@@ -347,12 +340,8 @@ BEGIN
                         OUT_WE <= '1';
                         OUT_DATA <= DATA_RDATA;
                         mx1_sel <= '0';
-                        fsm_state <= fsm_putchar_clear;
+                        fsm_state <= fsm_load_ins;
                     END IF;
-                WHEN fsm_putchar_clear =>
-                    OUT_WE <= '1';
-                    fsm_state <= fsm_load_ins;
-
                 WHEN OTHERS => fsm_state <= fsm_init;
             END CASE;
 
