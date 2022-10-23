@@ -231,7 +231,7 @@ BEGIN
                     mx1_sel <= '0';
                     DATA_RDWR <= '0';
                     DATA_EN <= '1';
-
+                    mx2_sel <= "00";
                     fsm_state <= fsm_for_mem;
                 WHEN fsm_for_mem =>
                     DATA_EN <= '1';
@@ -265,7 +265,8 @@ BEGIN
                         WHEN x"00" =>
                             fsm_state <= fsm_null;
                         WHEN OTHERS =>
-                            fsm_state <= fsm_init;
+                        pc_inc <= '1';
+                        fsm_state <= fsm_load_ins;
 
                     END CASE;
                 WHEN fsm_inc_ptr =>
@@ -307,7 +308,7 @@ BEGIN
                     DATA_RDWR <= '1';
                     DATA_EN <= '1';
                     mx1_sel <= '1';
-                    fsm_state <= fsm_inc_val_4;
+                    fsm_state <= fsm_load_ins;
                 WHEN fsm_inc_val_4 => ---set everything back
                     DATA_RDWR <= '0';
                     DATA_EN <= '1';
@@ -471,8 +472,12 @@ BEGIN
                         END CASE;
                         fsm_state <= fsm_while_end_loop_wait;
                     END IF;
+                WHEN fsm_null =>
+                fsm_state <= fsm_load_ins;
 
-                WHEN OTHERS => fsm_state <= fsm_init; ---pridat pc <- PC + 1 a null pc <- PC
+                WHEN OTHERS =>
+                pc_inc <= '1';
+                fsm_state <= fsm_load_ins; ---pridat pc <- PC + 1 a null pc <- PC
             END CASE;
 
         END IF;
