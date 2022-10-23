@@ -86,6 +86,9 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_putchar_2,
         fsm_putchar_3,
         fsm_getchar,
+        fsm_getchar_1,
+        fsm_getchar_2,
+        fsm_getchar_3,
         fsm_while_start,
         fsm_while_end,
         fsm_neg_while_start,
@@ -342,6 +345,31 @@ BEGIN
                         mx1_sel <= '0';
                         fsm_state <= fsm_load_ins;
                     END IF;
+                WHEN fsm_getchar =>
+
+                    DATA_EN <= '0';
+                    mx2_sel <= "00";
+                    mx1_sel <= '1';
+                    IN_REQ <= '1';
+                    IF (IN_VLD = '1') THEN
+                    pc_inc <= '1';
+                        IN_REQ <= '0';
+
+                        fsm_state <= fsm_getchar_1;
+                    END IF;
+                WHEN fsm_getchar_1 =>
+                pc_inc <= '0';
+                    DATA_RDWR <= '1';
+                    DATA_EN <= '1';
+                    fsm_state <= fsm_getchar_2;
+                WHEN fsm_getchar_2 =>
+
+                    fsm_state <= fsm_getchar_3;
+                WHEN fsm_getchar_3 =>
+                    mx1_sel <= '0';
+                    DATA_RDWR <= '0';
+                    DATA_EN <= '0';
+                    fsm_state <= fsm_load_ins;
                 WHEN OTHERS => fsm_state <= fsm_init;
             END CASE;
 
