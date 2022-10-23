@@ -39,7 +39,7 @@ END cpu;
 --                      Architecture declaration
 -- ----------------------------------------------------------------------------
 ARCHITECTURE behavioral OF cpu IS
-
+    SIGNAL debug : STD_LOGIC := '0';
     -- Program counter PC
     SIGNAL pc_reg : STD_LOGIC_VECTOR(12 DOWNTO 0) := (OTHERS => '0');
     SIGNAL pc_inc : STD_LOGIC := '0';
@@ -94,6 +94,8 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_while_start_1,
         fsm_while_start_wait,
         fsm_while_start_wait_1,
+        fsm_while_start_1_wait,
+        fsm_while_start_2_wait,
         fsm_while_start_loop,
         fsm_while_start_end,
         fsm_while_end,
@@ -106,7 +108,20 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_while_end_loop_wait_2,
         fsm_while_end_end,
         fsm_neg_while_start,
+        fsm_neg_while_start_1,
+        fsm_neg_while_start_wait,
+        fsm_neg_while_start_wait_1,
+        fsm_neg_while_start_loop,
+        fsm_neg_while_start_end,
         fsm_neg_while_end,
+        fsm_neg_while_end_1,
+        fsm_neg_while_end_wait,
+        fsm_neg_while_end_wait_1,
+        fsm_neg_while_end_loop,
+        fsm_neg_while_end_loop_wait,
+        fsm_neg_while_end_loop_wait_1,
+        fsm_neg_while_end_loop_wait_2,
+        fsm_neg_while_end_end,
         fsm_null
     );
 
@@ -205,7 +220,7 @@ BEGIN
             mx2_sel <= "00";
         ELSIF (CLK'event) AND (CLK = '1') THEN
             --- set everything to default so we dont have to specify everything in every state
-
+            debug <= '0';
             pc_dec <= '0';
             pc_clear <= '0';
             pc_inc <= '0';
@@ -265,8 +280,8 @@ BEGIN
                         WHEN x"00" =>
                             fsm_state <= fsm_null;
                         WHEN OTHERS =>
-                        pc_inc <= '1';
-                        fsm_state <= fsm_load_ins;
+                            pc_inc <= '1';
+                            fsm_state <= fsm_load_ins;
 
                     END CASE;
                 WHEN fsm_inc_ptr =>
@@ -403,27 +418,33 @@ BEGIN
                 WHEN fsm_while_start_1 =>
                     IF (DATA_RDATA = "00000000") THEN
                         cnt_inc <= '1';
-                        fsm_state <= fsm_while_start_loop;
+                        mx1_sel <= '0';
+                        fsm_state <= fsm_while_start_1_wait;
                     ELSE
                         pc_inc <= '0';
                         fsm_state <= fsm_load_ins;
                     END IF;
+                WHEN fsm_while_start_1_wait =>
+                    fsm_state <= fsm_while_start_2_wait;
+                WHEN fsm_while_start_2_wait =>
+                    fsm_state <= fsm_while_start_loop;
                 WHEN fsm_while_start_loop =>
                     pc_inc <= '0';
-                    mx1_sel <= '0';
                     IF (cnt_reg = "0000000000000000") THEN
                         fsm_state <= fsm_load_ins;
                     ELSE
                         CASE DATA_RDATA IS
                             WHEN x"5B" =>
                                 cnt_inc <= '1';
+                                pc_inc <= '1';
                             WHEN x"5D" =>
                                 cnt_dec <= '1';
+                                pc_inc <= '1';
                             WHEN OTHERS =>
                                 pc_inc <= '1';
 
                         END CASE;
-                        fsm_state <= fsm_while_start_loop;
+                        fsm_state <= fsm_while_start_1_wait;
                     END IF;
                 WHEN fsm_while_end =>
                     DATA_RDWR <= '0';
@@ -446,9 +467,9 @@ BEGIN
                     END IF;
                 WHEN fsm_while_end_loop_wait =>
                     fsm_state <= fsm_while_end_loop_wait_1;
-                    WHEN fsm_while_end_loop_wait_1 =>
+                WHEN fsm_while_end_loop_wait_1 =>
                     fsm_state <= fsm_while_end_loop_wait_2;
-                    WHEN fsm_while_end_loop_wait_2 =>
+                WHEN fsm_while_end_loop_wait_2 =>
                     fsm_state <= fsm_while_end_loop;
                 WHEN fsm_while_end_loop =>
                     pc_inc <= '0';
@@ -456,11 +477,69 @@ BEGIN
                     mx1_sel <= '0';
                     IF (cnt_reg = "0000000000000000") THEN
                         fsm_state <= fsm_load_ins;
+                        debug <= '1';
                     ELSE
                         CASE DATA_RDATA IS
                             WHEN x"5B" =>
                                 cnt_dec <= '1';
+                                IF (cnt_reg = "0000000000000001") THEN
+                                    pc_inc <= '1';
+                                ELSE
+                                    pc_dec <= '1';
+                                END IF;
                             WHEN x"5D" =>
+                                cnt_inc <= '1';
+                                pc_dec <= '1';
+                            WHEN OTHERS =>
+                                IF (cnt_reg = "0000000000000000") THEN
+                                    pc_inc <= '1';
+                                ELSE
+                                    pc_dec <= '1';
+                                END IF;
+
+                        END CASE;
+
+                        fsm_state <= fsm_while_end_loop_wait;
+                    END IF;
+                WHEN fsm_neg_while_start =>
+                    pc_inc <= '1';
+                    fsm_state <= fsm_load_ins;
+                WHEN fsm_neg_while_end =>
+                    DATA_RDWR <= '0';
+                    DATA_EN <= '1';
+                    mx1_sel <= '1';
+                    fsm_state <= fsm_neg_while_end_wait;
+                WHEN fsm_neg_while_end_wait =>
+                    fsm_state <= fsm_neg_while_end_wait_1;
+                WHEN fsm_neg_while_end_wait_1 =>
+                    fsm_state <= fsm_neg_while_end_1;
+                WHEN fsm_neg_while_end_1 =>
+                    IF (DATA_RDATA = "00000000") THEN
+                        pc_inc <= '1';
+                        fsm_state <= fsm_load_ins;
+                    ELSE
+                        cnt_inc <= '1';
+                        pc_dec <= '1';
+                        mx1_sel <= '0';
+                        fsm_state <= fsm_neg_while_end_loop_wait;
+                    END IF;
+                WHEN fsm_neg_while_end_loop_wait =>
+                    fsm_state <= fsm_neg_while_end_loop_wait_1;
+                WHEN fsm_neg_while_end_loop_wait_1 =>
+                    fsm_state <= fsm_neg_while_end_loop_wait_2;
+                WHEN fsm_neg_while_end_loop_wait_2 =>
+                    fsm_state <= fsm_neg_while_end_loop;
+                WHEN fsm_neg_while_end_loop =>
+                    pc_inc <= '0';
+                    pc_dec <= '0';
+                    mx1_sel <= '0';
+                    IF (cnt_reg = "0000000000000000") THEN
+                        fsm_state <= fsm_load_ins;
+                    ELSE
+                        CASE DATA_RDATA IS
+                            WHEN x"28" =>
+                                cnt_dec <= '1';
+                            WHEN x"29" =>
                                 cnt_inc <= '1';
                             WHEN OTHERS =>
                                 IF (cnt_reg = "0000000000000000") THEN
@@ -470,14 +549,14 @@ BEGIN
                                 END IF;
 
                         END CASE;
-                        fsm_state <= fsm_while_end_loop_wait;
+                        fsm_state <= fsm_neg_while_end_loop_wait;
                     END IF;
                 WHEN fsm_null =>
-                fsm_state <= fsm_load_ins;
+                    fsm_state <= fsm_load_ins;
 
                 WHEN OTHERS =>
-                pc_inc <= '1';
-                fsm_state <= fsm_load_ins; ---pridat pc <- PC + 1 a null pc <- PC
+                    pc_inc <= '1';
+                    fsm_state <= fsm_load_ins; ---pridat pc <- PC + 1 a null pc <- PC
             END CASE;
 
         END IF;
