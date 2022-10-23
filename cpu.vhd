@@ -111,6 +111,7 @@ ARCHITECTURE behavioral OF cpu IS
         fsm_neg_while_start_1,
         fsm_neg_while_start_wait,
         fsm_neg_while_start_wait_1,
+        fsm_while_start_3_wait,
         fsm_neg_while_start_loop,
         fsm_neg_while_start_end,
         fsm_neg_while_end,
@@ -426,7 +427,9 @@ BEGIN
                     END IF;
                 WHEN fsm_while_start_1_wait =>
                     fsm_state <= fsm_while_start_2_wait;
-                WHEN fsm_while_start_2_wait =>
+                    WHEN fsm_while_start_2_wait =>
+                    fsm_state <= fsm_while_start_3_wait;
+                WHEN fsm_while_start_3_wait =>
                     fsm_state <= fsm_while_start_loop;
                 WHEN fsm_while_start_loop =>
                     pc_inc <= '0';
