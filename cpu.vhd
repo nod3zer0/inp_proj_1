@@ -137,9 +137,15 @@ BEGIN
         ELSIF (CLK'event) AND (CLK = '1') THEN
             IF (pc_inc = '1') THEN
                 pc_reg <= pc_reg + 1;
+                IF (pc_reg = "0111111111111") THEN -- mozna nefunguje spravne TODO
+                    pc_reg <= "0000000000000";
+                END IF;
             END IF;
             IF (pc_dec = '1') THEN
                 pc_reg <= pc_reg - 1;
+                IF (pc_reg = "0000000000000") THEN -- mozna nefunguje spravne TODO
+                    pc_reg <= "0111111111111";
+                END IF;
             END IF;
             IF (pc_clear = '1') THEN
                 pc_reg <= (OTHERS => '0');
@@ -172,17 +178,21 @@ BEGIN
         ELSIF (CLK'event) AND (CLK = '1') THEN
             IF (ptr_inc = '1') THEN
                 ptr_reg <= ptr_reg + 1;
+                IF (ptr_reg = "1111111111111") THEN -- mozna nefunguje spravne TODO
+                    ptr_reg <= "1000000000000";
+                END IF;
             END IF;
             IF (ptr_dec = '1') THEN
                 ptr_reg <= ptr_reg - 1;
+                IF (ptr_reg = "1000000000000") THEN -- mozna nefunguje spravne TODO
+                    ptr_reg <= "1111111111111";
+                END IF;
             END IF;
             IF (ptr_clear = '1') THEN
                 ptr_reg <= "1000000000000";
             END IF;
         END IF;
-        IF (ptr_reg < "1000000000000") THEN -- mozna nefunguje spravne
-            ptr_reg <= "1000000000000";
-        END IF;
+
     END PROCESS;
 
     -- MX1
@@ -427,7 +437,7 @@ BEGIN
                     END IF;
                 WHEN fsm_while_start_1_wait =>
                     fsm_state <= fsm_while_start_2_wait;
-                    WHEN fsm_while_start_2_wait =>
+                WHEN fsm_while_start_2_wait =>
                     fsm_state <= fsm_while_start_3_wait;
                 WHEN fsm_while_start_3_wait =>
                     fsm_state <= fsm_while_start_loop;
@@ -542,8 +552,12 @@ BEGIN
                         CASE DATA_RDATA IS
                             WHEN x"28" =>
                                 cnt_dec <= '1';
+                                IF (cnt_reg = "0000000000000001") THEN
+                                    pc_inc <= '1';
+                                END IF;
                             WHEN x"29" =>
                                 cnt_inc <= '1';
+                                pc_dec <= '1';
                             WHEN OTHERS =>
                                 IF (cnt_reg = "0000000000000000") THEN
                                     pc_inc <= '1';
